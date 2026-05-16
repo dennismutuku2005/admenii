@@ -27,24 +27,37 @@ class DomainsScreen extends StatelessWidget {
       ),
       body: Consumer<AdBlockerProvider>(
         builder: (context, provider, _) {
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: provider.domains.length,
-            itemBuilder: (context, index) {
-              final domain = provider.domains[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 4),
-                child: ListTile(
-                  dense: true,
-                  leading: const Icon(Icons.block_rounded, color: Color(0xFF536B74), size: 14),
-                  title: Text(domain['domain'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
-                  trailing: IconButton(
-                    icon: const Icon(Icons.close_rounded, size: 14),
-                    onPressed: () => provider.removeDomain(domain['domain']),
-                  ),
+          return Column(
+            children: [
+              if (provider.isUpdating)
+                LinearProgressIndicator(
+                  value: provider.updateProgress > 0 ? provider.updateProgress : null,
+                  backgroundColor: const Color(0xFFF5F7F8),
+                  color: const Color(0xFF47ACAF),
+                  minHeight: 2,
                 ),
-              );
-            },
+              Expanded(
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: provider.domains.length,
+                  itemBuilder: (context, index) {
+                    final domain = provider.domains[index];
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 4),
+                      child: ListTile(
+                        dense: true,
+                        leading: const Icon(Icons.block_rounded, color: Color(0xFF536B74), size: 14),
+                        title: Text(domain['domain'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 14),
+                          onPressed: () => provider.removeDomain(domain['domain']),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
       ),
