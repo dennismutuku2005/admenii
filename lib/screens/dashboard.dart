@@ -214,7 +214,8 @@ class HomeScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: List.generate(7, (index) {
-                  final height = [40, 80, 60, 100, 70, 90, 50][index].toDouble();
+                  final heights = [40.0, 80.0, 60.0, 100.0, 70.0, 90.0, 50.0];
+                  final height = heights[index];
                   return Container(
                     width: 20,
                     height: height,
