@@ -8,22 +8,23 @@ class WhitelistScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Authorized Domains')),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(title: const Text('Whitelist', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), toolbarHeight: 60),
       body: Consumer<AdBlockerProvider>(
         builder: (context, provider, _) {
           return ListView.builder(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(20),
             itemCount: provider.whitelist.length,
             itemBuilder: (context, index) {
               final domain = provider.whitelist[index];
               return Card(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: const EdgeInsets.only(bottom: 4),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                  leading: const Icon(Icons.check_circle_rounded, color: Color(0xFF47ACAF), size: 18),
-                  title: Text(domain, style: const TextStyle(fontWeight: FontWeight.w500)),
+                  dense: true,
+                  leading: const Icon(Icons.check_circle_rounded, color: Color(0xFF47ACAF), size: 14),
+                  title: Text(domain, style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 13)),
                   trailing: IconButton(
-                    icon: const Icon(Icons.delete_outline_rounded, size: 18),
+                    icon: const Icon(Icons.delete_outline_rounded, size: 14),
                     onPressed: () => provider.removeWhitelist(domain),
                   ),
                 ),
@@ -32,11 +33,10 @@ class WhitelistScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.small(
         backgroundColor: const Color(0xFF47ACAF),
         onPressed: () => _showAddDialog(context),
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Allow Domain', style: TextStyle(color: Colors.white)),
+        child: const Icon(Icons.add, color: Colors.white, size: 18),
       ),
     );
   }
@@ -46,9 +46,10 @@ class WhitelistScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Add to Whitelist'),
+        title: const Text('Allow Domain', style: TextStyle(fontSize: 16)),
         content: TextField(
           controller: controller,
+          style: const TextStyle(fontSize: 14),
           decoration: const InputDecoration(hintText: 'trusted-site.com', border: OutlineInputBorder()),
         ),
         actions: [
