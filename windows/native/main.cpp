@@ -13,7 +13,7 @@ VOID WINAPI ServiceCtrlHandler(DWORD);
 int main(int argc, char* argv[]) {
     if (argc > 1 && std::string(argv[1]) == "--service") {
         SERVICE_TABLE_ENTRY ServiceTable[] = {
-            {(LPSTR)"AdMeniiDNS", (LPSERVICE_MAIN_FUNCTION)ServiceMain},
+            {(LPTSTR)TEXT("AdMeniiDNS"), (LPSERVICE_MAIN_FUNCTION)ServiceMain},
             {NULL, NULL}
         };
 
