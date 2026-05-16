@@ -8,27 +8,25 @@ class SourcesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('DNS Sources')),
+      backgroundColor: Colors.transparent,
+      appBar: AppBar(title: const Text('DNS Sources', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), toolbarHeight: 60),
       body: Consumer<AdBlockerProvider>(
         builder: (context, provider, _) {
           return ListView.builder(
-            padding: const EdgeInsets.all(32),
+            padding: const EdgeInsets.all(20),
             itemCount: provider.sources.length,
             itemBuilder: (context, index) {
               final source = provider.sources[index];
               return Card(
-                margin: const EdgeInsets.only(bottom: 16),
+                margin: const EdgeInsets.only(bottom: 8),
                 child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                  leading: const CircleAvatar(
-                    backgroundColor: Color(0xFFF5F7F8),
-                    child: Icon(Icons.link_rounded, color: Color(0xFF47ACAF)),
-                  ),
-                  title: Text(source['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  subtitle: Text(source['url'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
+                  dense: true,
+                  leading: const Icon(Icons.link_rounded, color: Color(0xFF47ACAF), size: 16),
+                  title: Text(source['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                  subtitle: Text(source['url'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11)),
                   trailing: TextButton(
                     onPressed: () => provider.fetchBlocklist(source['url']),
-                    child: const Text('Update Now'),
+                    child: const Text('Sync', style: TextStyle(fontSize: 12)),
                   ),
                 ),
               );
@@ -36,11 +34,10 @@ class SourcesScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton.small(
         backgroundColor: const Color(0xFF47ACAF),
         onPressed: () {},
-        icon: const Icon(Icons.add, color: Colors.white),
-        label: const Text('Add Source', style: TextStyle(color: Colors.white)),
+        child: const Icon(Icons.add, color: Colors.white, size: 18),
       ),
     );
   }
