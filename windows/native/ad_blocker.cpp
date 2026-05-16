@@ -81,8 +81,8 @@ bool AdBlocker::start(int port) {
                         response[7] = 1;      // Answer count
                         
                         int ansPos = bytesReceived;
-                        response[ansPos++] = (char)0xC0;
-                        response[ansPos++] = (char)0x0C;
+                        response[ansPos++] = (unsigned char)0xC0;
+                        response[ansPos++] = (unsigned char)0x0C;
                         response[ansPos++] = 0;
                         response[ansPos++] = 1;
                         response[ansPos++] = 0;
@@ -90,13 +90,13 @@ bool AdBlocker::start(int port) {
                         response[ansPos++] = 0;
                         response[ansPos++] = 0;
                         response[ansPos++] = 0;
-                        response[ansPos++] = (char)0x3C;
+                        response[ansPos++] = (unsigned char)0x3C;
                         response[ansPos++] = 0;
                         response[ansPos++] = 4;
-                        response[ansPos++] = (char)0x00;
-                        response[ansPos++] = (char)0x00;
-                        response[ansPos++] = (char)0x00;
-                        response[ansPos++] = (char)0x00;
+                        response[ansPos++] = (unsigned char)0x00;
+                        response[ansPos++] = (unsigned char)0x00;
+                        response[ansPos++] = (unsigned char)0x00;
+                        response[ansPos++] = (unsigned char)0x00;
                         
                         sendto(udpSocket, response, ansPos, 0, (sockaddr*)&clientAddr, clientAddrLen);
                     } else {
