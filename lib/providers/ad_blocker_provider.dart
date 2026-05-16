@@ -42,6 +42,7 @@ class AdBlockerProvider with ChangeNotifier {
   bool _isDoHBlocked = false;
   bool _isServiceInstalled = false;
   bool _isUpdating = false;
+  double _updateProgress = 0.0;
   String _statusMessage = '';
   
   List<Map<String, dynamic>> _domains = [];
@@ -179,6 +180,8 @@ class AdBlockerProvider with ChangeNotifier {
         _statusMessage = 'DNS engine running but could not set system DNS. Run as Admin!';
         debugPrint('DNS config error: ${dnsResult.stderr}');
       } else {
+        // Flush DNS cache so new queries are forced to our engine
+        await Process.run('ipconfig', ['/flushdns']);
         _statusMessage = 'Protection active. All DNS routed through AdMenii.';
       }
     } catch (e) {
@@ -315,6 +318,7 @@ class AdBlockerProvider with ChangeNotifier {
       if (response.statusCode == 200) {
         final lines = response.body.split('\n');
         final batch = _db!.batch();
+        int count = 0;
         for (var line in lines) {
           if (line.startsWith('0.0.0.0 ') || line.startsWith('127.0.0.1 ')) {
             final parts = line.split(RegExp(r'\s+'));
@@ -322,6 +326,11 @@ class AdBlockerProvider with ChangeNotifier {
               final domain = parts[1].trim();
               if (domain.isNotEmpty && domain != 'localhost') {
                 batch.insert('domains', {'domain': domain, 'source': url}, conflictAlgorithm: ConflictAlgorithm.ignore);
+                count++;
+                if (count % 1000 == 0) {
+                  _updateProgress = count / lines.length;
+                  notifyListeners();
+                }
               }
             }
           }
@@ -400,6 +409,7 @@ class AdBlockerProvider with ChangeNotifier {
   bool get isDoHBlocked => _isDoHBlocked;
   bool get isServiceInstalled => _isServiceInstalled;
   bool get isUpdating => _isUpdating;
+  double get updateProgress => _updateProgress;
   String get statusMessage => _statusMessage;
   int get totalQueries => _totalQueries;
   int get blockedQueries => _blockedQueries;
