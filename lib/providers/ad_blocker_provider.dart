@@ -40,8 +40,10 @@ class AdBlockerProvider with ChangeNotifier {
   int _blockedQueries = 0;
   String _upstreamDNS = '8.8.8.8';
   bool _isDoHBlocked = false;
+  bool _isServiceInstalled = false;
   
   List<Map<String, dynamic>> _domains = [];
+  List<Map<String, dynamic>> _logs = [];
   List<Map<String, dynamic>> _sources = [];
   List<String> _whitelist = [];
   
@@ -161,6 +163,18 @@ class AdBlockerProvider with ChangeNotifier {
       
       _totalQueries = getTotal(_blockerPtr!);
       _blockedQueries = getBlocked(_blockerPtr!);
+      
+      final getLogs = _nativeLib.lookupFunction<Pointer<Utf8> Function(Pointer<Void>), Pointer<Utf8> Function(Pointer<Void>)>('adblocker_get_logs');
+      final freeStr = _nativeLib.lookupFunction<Void Function(Pointer<Utf8>), void Function(Pointer<Utf8>)>('adblocker_free_string');
+      
+      final logsPtr = getLogs(_blockerPtr!);
+      if (logsPtr != nullptr) {
+        final logsJson = logsPtr.toDartString();
+        _logs = List<Map<String, dynamic>>.from(jsonDecode(logsJson));
+        _logs = _logs.reversed.toList(); // Newest first
+        freeStr(logsPtr);
+      }
+      
       notifyListeners();
     });
   }
@@ -241,6 +255,35 @@ class AdBlockerProvider with ChangeNotifier {
     }
   }
 
+  Future<void> installService() async {
+    try {
+      final exePath = join(File(Platform.resolvedExecutable).parent.path, 'admenii_backend.exe');
+      if (!await File(exePath).exists()) {
+        debugPrint('Backend executable not found at: $exePath');
+        return;
+      }
+
+      // Use PowerShell to create the service (requires Admin)
+      final script = '''
+        \$serviceName = "AdMeniiDNS"
+        \$exePath = "$exePath"
+        if (Get-Service \$serviceName -ErrorAction SilentlyContinue) {
+            sc.exe delete \$serviceName
+        }
+        sc.exe create \$serviceName binPath= "\$exePath --service" start= auto
+        sc.exe start \$serviceName
+        # Set system DNS to localhost
+        Set-DnsClientServerAddress -InterfaceAlias (Get-NetAdapter | Where-Object {\$_.Status -eq "Up"}).InterfaceAlias -ServerAddresses ("127.0.0.1")
+      ''';
+
+      await Process.run('powershell', ['-Command', script]);
+      _isServiceInstalled = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error installing service: $e');
+    }
+  }
+
   Future<void> toggleDoH(bool value) async {
     _isDoHBlocked = value;
     final dohDomains = [
@@ -275,8 +318,10 @@ class AdBlockerProvider with ChangeNotifier {
   // Getters
   bool get isRunning => _isRunning;
   bool get isDoHBlocked => _isDoHBlocked;
+  bool get isServiceInstalled => _isServiceInstalled;
   int get totalQueries => _totalQueries;
   int get blockedQueries => _blockedQueries;
+  List<Map<String, dynamic>> get logs => _logs;
   String get upstreamDNS => _upstreamDNS;
   List<Map<String, dynamic>> get domains => _domains;
   List<Map<String, dynamic>> get sources => _sources;
