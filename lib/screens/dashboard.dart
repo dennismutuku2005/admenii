@@ -4,6 +4,7 @@ import '../providers/ad_blocker_provider.dart';
 import 'sources_screen.dart';
 import 'domains_screen.dart';
 import 'whitelist_screen.dart';
+import 'logger_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,6 +18,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   
   final List<Widget> _screens = [
     const HomeScreen(),
+    const LoggerScreen(), // New
     const SourcesScreen(),
     const DomainsScreen(),
     const WhitelistScreen(),
@@ -42,19 +44,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildSidebar() {
     return Container(
-      width: 200, // Narrower sidebar
+      width: 180, // Even narrower for more space
       color: const Color(0xFF504A56),
       padding: const EdgeInsets.symmetric(vertical: 30),
       child: Column(
         children: [
           Image.asset('assets/images/logo.png', height: 40),
           const SizedBox(height: 40),
-          _buildNavItem(0, Icons.grid_view_rounded, 'Overview'),
-          _buildNavItem(1, Icons.language_rounded, 'Filter Lists'),
-          _buildNavItem(2, Icons.shield_outlined, 'Blacklist'),
-          _buildNavItem(3, Icons.verified_user_outlined, 'Whitelist'),
+          _buildNavItem(0, Icons.grid_view_rounded, 'Dashboard'),
+          _buildNavItem(1, Icons.list_alt_rounded, 'Activity Log'),
+          _buildNavItem(2, Icons.language_rounded, 'Filter Lists'),
+          _buildNavItem(3, Icons.shield_outlined, 'Blacklist'),
+          _buildNavItem(4, Icons.verified_user_outlined, 'Whitelist'),
           const Spacer(),
-          _buildNavItem(4, Icons.tune_rounded, 'Settings'),
+          _buildNavItem(5, Icons.tune_rounded, 'Settings'),
           const SizedBox(height: 10),
         ],
       ),
@@ -64,7 +67,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildNavItem(int index, IconData icon, String label) {
     final isSelected = _selectedIndex == index;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
       child: InkWell(
         onTap: () => setState(() => _selectedIndex = index),
         borderRadius: BorderRadius.circular(8),
@@ -76,14 +79,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           child: Row(
             children: [
-              Icon(icon, color: isSelected ? const Color(0xFF47ACAF) : Colors.white54, size: 16),
-              const SizedBox(width: 12),
+              Icon(icon, color: isSelected ? const Color(0xFF47ACAF) : Colors.white54, size: 14),
+              const SizedBox(width: 10),
               Text(
                 label,
                 style: TextStyle(
                   color: isSelected ? Colors.white : Colors.white54,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                  fontSize: 13,
+                  fontSize: 12,
                 ),
               ),
             ],
@@ -102,7 +105,7 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
-        title: const Text('Status Dashboard', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: const Text('Overview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         toolbarHeight: 60,
         actions: [
           Padding(
@@ -120,12 +123,14 @@ class HomeScreen extends StatelessWidget {
             Consumer<AdBlockerProvider>(
               builder: (context, provider, _) => _buildCompactHero(provider),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             Consumer<AdBlockerProvider>(
               builder: (context, provider, _) => _buildStatsRow(provider),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 16),
             _buildChartSection(context),
+            const SizedBox(height: 16),
+            _buildRecentActivity(context),
           ],
         ),
       ),
@@ -134,7 +139,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildStatusBadge(AdBlockerProvider provider) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: provider.isRunning ? const Color(0xFF47ACAF).withOpacity(0.1) : Colors.grey.withOpacity(0.1),
         borderRadius: BorderRadius.circular(20),
@@ -142,11 +147,11 @@ class HomeScreen extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 6, height: 6, decoration: BoxDecoration(color: provider.isRunning ? const Color(0xFF47ACAF) : Colors.grey, shape: BoxShape.circle)),
+          Container(width: 5, height: 5, decoration: BoxDecoration(color: provider.isRunning ? const Color(0xFF47ACAF) : Colors.grey, shape: BoxShape.circle)),
           const SizedBox(width: 6),
           Text(
             provider.isRunning ? 'ACTIVE' : 'OFF',
-            style: TextStyle(color: provider.isRunning ? const Color(0xFF47ACAF) : Colors.grey, fontSize: 9, fontWeight: FontWeight.bold),
+            style: TextStyle(color: provider.isRunning ? const Color(0xFF47ACAF) : Colors.grey, fontSize: 8, fontWeight: FontWeight.bold),
           ),
         ],
       ),
@@ -155,11 +160,11 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildCompactHero(AdBlockerProvider provider) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.01), blurRadius: 10, offset: const Offset(0, 4))],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.withOpacity(0.05)),
       ),
       child: Row(
         children: [
@@ -168,28 +173,29 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  provider.isRunning ? 'Network Protection Active' : 'System Paused',
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF504A56)),
+                  provider.isRunning ? 'Protection Active' : 'System Paused',
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF504A56)),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
-                  provider.isRunning ? 'Filtering ads and tracking domains.' : 'Click the button to start filtering.',
-                  style: const TextStyle(fontSize: 13, color: Colors.grey),
+                  provider.isRunning ? 'Currently filtering network domains.' : 'Click to start the DNS engine.',
+                  style: const TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ],
             ),
           ),
           SizedBox(
-            height: 40,
+            height: 32,
             child: ElevatedButton(
               onPressed: () => provider.isRunning ? provider.stopServer() : provider.startServer(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: provider.isRunning ? const Color(0xFF47ACAF) : const Color(0xFFF5F7F8),
                 foregroundColor: provider.isRunning ? Colors.white : const Color(0xFF504A56),
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               ),
-              child: Text(provider.isRunning ? 'Stop Service' : 'Start Service'),
+              child: Text(provider.isRunning ? 'Stop' : 'Start', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -220,12 +226,12 @@ class HomeScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(icon, color: const Color(0xFF536B74), size: 14),
+              Icon(icon, color: const Color(0xFF536B74), size: 12),
               const SizedBox(width: 6),
-              Text(title, style: const TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.w500)),
+              Text(title, style: const TextStyle(fontSize: 9, color: Colors.grey, fontWeight: FontWeight.w500)),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF504A56))),
         ],
       ),
@@ -234,30 +240,68 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildChartSection(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16)),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Blocking Activity', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-          const SizedBox(height: 24),
+          const Text('Blocking Activity', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+          const SizedBox(height: 20),
           SizedBox(
-            height: 100,
+            height: 80,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               crossAxisAlignment: CrossAxisAlignment.end,
-              children: List.generate(12, (index) {
-                final heights = [20.0, 40.0, 30.0, 60.0, 80.0, 70.0, 60.0, 90.0, 70.0, 80.0, 100.0, 90.0];
+              children: List.generate(15, (index) {
+                final heights = [20.0, 40.0, 30.0, 60.0, 80.0, 70.0, 60.0, 90.0, 70.0, 80.0, 100.0, 90.0, 60.0, 40.0, 50.0];
                 return Container(
-                  width: 24,
+                  width: 16,
                   height: heights[index],
                   decoration: BoxDecoration(
                     color: index == 10 ? const Color(0xFF47ACAF) : const Color(0xFFF5F7F8),
-                    borderRadius: BorderRadius.circular(4),
+                    borderRadius: BorderRadius.circular(3),
                   ),
                 );
               }),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentActivity(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Live Traffic', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const Icon(Icons.keyboard_arrow_right, size: 16, color: Colors.grey),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Consumer<AdBlockerProvider>(
+            builder: (context, provider, _) {
+              final miniLogs = provider.logs.take(3).toList();
+              if (miniLogs.isEmpty) return const Text('No recent activity', style: TextStyle(fontSize: 10, color: Colors.grey));
+              return Column(
+                children: miniLogs.map((log) => Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    children: [
+                      Container(width: 4, height: 4, decoration: BoxDecoration(color: log['blocked'] ? Colors.red : Colors.green, shape: BoxShape.circle)),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(log['domain'], style: const TextStyle(fontSize: 10, color: Color(0xFF504A56)), overflow: TextOverflow.ellipsis)),
+                    ],
+                  ),
+                )).toList(),
+              );
+            },
           ),
         ],
       ),
@@ -280,16 +324,21 @@ class SettingsScreen extends StatelessWidget {
             Consumer<AdBlockerProvider>(
               builder: (context, provider, _) => _buildSmallToggle('Force Local DNS', 'Blocks browser DoH.', provider.isDoHBlocked, (v) => provider.toggleDoH(v)),
             ),
-            _buildSmallToggle('Auto-update', 'Refresh domains.', true, (v) {}),
           ]),
-          const SizedBox(height: 20),
-          _buildCompactGroup('Service', [
-            ListTile(
-              dense: true,
-              title: const Text('Background Service', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-              trailing: SizedBox(
-                height: 30,
-                child: OutlinedButton(onPressed: () {}, style: OutlinedButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 12)), child: const Text('Setup', style: TextStyle(fontSize: 12))),
+          const SizedBox(height: 16),
+          _buildCompactGroup('Background', [
+            Consumer<AdBlockerProvider>(
+              builder: (context, provider, _) => ListTile(
+                dense: true,
+                title: const Text('Windows Service', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                subtitle: Text(provider.isServiceInstalled ? 'Installed' : 'Ready to setup', style: const TextStyle(fontSize: 10)),
+                trailing: SizedBox(
+                  height: 28,
+                  child: OutlinedButton(
+                    onPressed: provider.isServiceInstalled ? null : () => provider.installService(),
+                    child: Text(provider.isServiceInstalled ? 'Done' : 'Install', style: const TextStyle(fontSize: 10)),
+                  ),
+                ),
               ),
             ),
           ]),
@@ -302,8 +351,8 @@ class SettingsScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(padding: const EdgeInsets.only(left: 4, bottom: 8), child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey))),
-        Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)), child: Column(children: children)),
+        Padding(padding: const EdgeInsets.only(left: 4, bottom: 6), child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey))),
+        Container(decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10)), child: Column(children: children)),
       ],
     );
   }
@@ -311,8 +360,8 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildSmallToggle(String title, String subtitle, bool value, Function(bool) onChanged) {
     return SwitchListTile(
       dense: true,
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
-      subtitle: Text(subtitle, style: const TextStyle(fontSize: 11)),
+      title: Text(title, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+      subtitle: Text(subtitle, style: const TextStyle(fontSize: 10)),
       value: value,
       activeColor: const Color(0xFF47ACAF),
       onChanged: onChanged,
