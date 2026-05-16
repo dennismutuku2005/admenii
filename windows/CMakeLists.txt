@@ -55,15 +55,15 @@ add_subdirectory("runner")
 # AdMenii Native Components (FFI)
 set(NATIVE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/native")
 add_library(adblocker SHARED "${NATIVE_DIR}/ad_blocker.cpp")
-apply_standard_settings(adblocker)
+target_compile_features(adblocker PUBLIC cxx_std_17)
+target_compile_options(adblocker PRIVATE /EHsc /wd"4100" /wd"4996")
 target_link_libraries(adblocker PRIVATE ws2_32)
 
 # AdMenii Standalone Backend
 add_executable(admenii_backend "${NATIVE_DIR}/main.cpp" "${NATIVE_DIR}/ad_blocker.cpp")
-apply_standard_settings(admenii_backend)
+target_compile_features(admenii_backend PUBLIC cxx_std_17)
+target_compile_options(admenii_backend PRIVATE /EHsc /wd"4100" /wd"4996")
 target_link_libraries(admenii_backend PRIVATE ws2_32)
-
-install(TARGETS adblocker admenii_backend RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
 
 
 # Generated plugin build rules, which manage building the plugins and adding
@@ -87,6 +87,10 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
+
+# Install native AdMenii components next to the main exe
+install(TARGETS adblocker RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
+install(TARGETS admenii_backend RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)
