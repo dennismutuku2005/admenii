@@ -7,42 +7,28 @@ class SourcesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Blocklist Sources')),
+      appBar: AppBar(title: const Text('DNS Sources')),
       body: Consumer<AdBlockerProvider>(
         builder: (context, provider, _) {
-          if (provider.sources.isEmpty) {
-            return const Center(child: Text('No sources found.'));
-          }
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(32),
             itemCount: provider.sources.length,
             itemBuilder: (context, index) {
               final source = provider.sources[index];
               return Card(
-                margin: const EdgeInsets.only(bottom: 12),
+                margin: const EdgeInsets.only(bottom: 16),
                 child: ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   leading: const CircleAvatar(
-                    backgroundColor: Color(0xFF536B74),
-                    child: Icon(Icons.link, color: Colors.white, size: 18),
+                    backgroundColor: Color(0xFFF5F7F8),
+                    child: Icon(Icons.link_rounded, color: Color(0xFF47ACAF)),
                   ),
-                  title: Text(source['name'] ?? 'Unknown Source', style: theme.textTheme.titleMedium),
+                  title: Text(source['name'] ?? 'Unknown', style: const TextStyle(fontWeight: FontWeight.bold)),
                   subtitle: Text(source['url'] ?? '', maxLines: 1, overflow: TextOverflow.ellipsis),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: source['is_active'] == 1 ? const Color(0xFF47ACAF).withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      source['is_active'] == 1 ? 'ACTIVE' : 'INACTIVE',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: source['is_active'] == 1 ? const Color(0xFF47ACAF) : Colors.red,
-                      ),
-                    ),
+                  trailing: TextButton(
+                    onPressed: () => provider.fetchBlocklist(source['url']),
+                    child: const Text('Update Now'),
                   ),
                 ),
               );
@@ -50,10 +36,11 @@ class SourcesScreen extends StatelessWidget {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: const Color(0xFFED5550),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: const Color(0xFF47ACAF),
         onPressed: () {},
-        child: const Icon(Icons.add, color: Colors.white),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Add Source', style: TextStyle(color: Colors.white)),
       ),
     );
   }
