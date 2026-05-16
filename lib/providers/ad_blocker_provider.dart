@@ -8,7 +8,7 @@ import 'package:path/path.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:http/http.dart' as http;
 
-// FFI Typedefs
+// FFI Typedefs (Native)
 typedef CreateFunc = Pointer<Void> Function();
 typedef DestroyFunc = Void Function(Pointer<Void>);
 typedef StartFunc = Int8 Function(Pointer<Void>, Int32);
@@ -18,6 +18,17 @@ typedef DomainFunc = Void Function(Pointer<Void>, Pointer<Utf8>);
 typedef ClearFunc = Void Function(Pointer<Void>);
 typedef SetUpstreamFunc = Void Function(Pointer<Void>, Pointer<Utf8>);
 typedef GetStatFunc = Int32 Function(Pointer<Void>);
+
+// FFI Typedefs (Dart)
+typedef CreateDart = Pointer<Void> Function();
+typedef DestroyDart = void Function(Pointer<Void>);
+typedef StartDart = int Function(Pointer<Void>, int);
+typedef StopDart = void Function(Pointer<Void>);
+typedef IsRunningDart = int Function(Pointer<Void>);
+typedef DomainDart = void Function(Pointer<Void>, Pointer<Utf8>);
+typedef ClearDart = void Function(Pointer<Void>);
+typedef SetUpstreamDart = void Function(Pointer<Void>, Pointer<Utf8>);
+typedef GetStatDart = int Function(Pointer<Void>);
 
 class AdBlockerProvider with ChangeNotifier {
   Database? _db;
@@ -41,11 +52,15 @@ class AdBlockerProvider with ChangeNotifier {
   }
 
   void _initNative() {
-    final libraryPath = 'adblocker.dll';
-    _nativeLib = DynamicLibrary.open(libraryPath);
-    
-    final create = _nativeLib.lookupFunction<CreateFunc, CreateFunc>('adblocker_create');
-    _blockerPtr = create();
+    try {
+      final libraryPath = 'adblocker.dll';
+      _nativeLib = DynamicLibrary.open(libraryPath);
+      
+      final create = _nativeLib.lookupFunction<CreateFunc, CreateDart>('adblocker_create');
+      _blockerPtr = create();
+    } catch (e) {
+      debugPrint('Failed to load native library: $e');
+    }
   }
 
   Future<void> _initDatabase() async {
@@ -99,10 +114,10 @@ class AdBlockerProvider with ChangeNotifier {
   Future<void> _syncWithNative() async {
     if (_blockerPtr == null) return;
     
-    final clearD = _nativeLib.lookupFunction<ClearFunc, ClearFunc>('adblocker_clear_domains');
-    final addD = _nativeLib.lookupFunction<DomainFunc, DomainFunc>('adblocker_add_domain');
-    final clearW = _nativeLib.lookupFunction<ClearFunc, ClearFunc>('adblocker_clear_whitelist');
-    final addW = _nativeLib.lookupFunction<DomainFunc, DomainFunc>('adblocker_add_whitelist');
+    final clearD = _nativeLib.lookupFunction<ClearFunc, ClearDart>('adblocker_clear_domains');
+    final addD = _nativeLib.lookupFunction<DomainFunc, DomainDart>('adblocker_add_domain');
+    final clearW = _nativeLib.lookupFunction<ClearFunc, ClearDart>('adblocker_clear_whitelist');
+    final addW = _nativeLib.lookupFunction<DomainFunc, DomainDart>('adblocker_add_whitelist');
     
     clearD(_blockerPtr!);
     final allDomains = await _db!.query('domains', columns: ['domain']);
@@ -118,7 +133,7 @@ class AdBlockerProvider with ChangeNotifier {
 
   Future<void> startServer() async {
     if (_blockerPtr == null) return;
-    final start = _nativeLib.lookupFunction<StartFunc, StartFunc>('adblocker_start');
+    final start = _nativeLib.lookupFunction<StartFunc, StartDart>('adblocker_start');
     if (start(_blockerPtr!, 53) != 0) {
       _isRunning = true;
       _startRefreshTimer();
@@ -126,13 +141,22 @@ class AdBlockerProvider with ChangeNotifier {
     }
   }
 
+  Future<void> setUpstream(String dns) async {
+    _upstreamDNS = dns;
+    if (_blockerPtr != null) {
+      final setU = _nativeLib.lookupFunction<SetUpstreamFunc, SetUpstreamDart>('adblocker_set_upstream');
+      setU(_blockerPtr!, dns.toNativeUtf8());
+    }
+    notifyListeners();
+  }
+  
   void _startRefreshTimer() {
     _refreshTimer?.cancel();
     _refreshTimer = Timer.periodic(const Duration(seconds: 2), (timer) {
       if (!_isRunning) return;
       
-      final getTotal = _nativeLib.lookupFunction<GetStatFunc, GetStatFunc>('adblocker_get_total_queries');
-      final getBlocked = _nativeLib.lookupFunction<GetStatFunc, GetStatFunc>('adblocker_get_blocked_queries');
+      final getTotal = _nativeLib.lookupFunction<GetStatFunc, GetStatDart>('adblocker_get_total_queries');
+      final getBlocked = _nativeLib.lookupFunction<GetStatFunc, GetStatDart>('adblocker_get_blocked_queries');
       
       _totalQueries = getTotal(_blockerPtr!);
       _blockedQueries = getBlocked(_blockerPtr!);
@@ -142,7 +166,7 @@ class AdBlockerProvider with ChangeNotifier {
 
   Future<void> stopServer() async {
     if (_blockerPtr == null) return;
-    final stop = _nativeLib.lookupFunction<StopFunc, StopFunc>('adblocker_stop');
+    final stop = _nativeLib.lookupFunction<StopFunc, StopDart>('adblocker_stop');
     stop(_blockerPtr!);
     _isRunning = false;
     _refreshTimer?.cancel();
@@ -150,34 +174,47 @@ class AdBlockerProvider with ChangeNotifier {
   }
 
   Future<void> addDomain(String domain, {String source = 'manual'}) async {
+    if (_db == null) return;
     await _db!.insert('domains', {'domain': domain, 'source': source}, conflictAlgorithm: ConflictAlgorithm.ignore);
-    final addD = _nativeLib.lookupFunction<DomainFunc, DomainFunc>('adblocker_add_domain');
-    addD(_blockerPtr!, domain.toNativeUtf8());
+    if (_blockerPtr != null) {
+      final addD = _nativeLib.lookupFunction<DomainFunc, DomainDart>('adblocker_add_domain');
+      addD(_blockerPtr!, domain.toNativeUtf8());
+    }
     _loadData();
   }
 
   Future<void> removeDomain(String domain) async {
+    if (_db == null) return;
     await _db!.delete('domains', where: 'domain = ?', whereArgs: [domain]);
-    final removeD = _nativeLib.lookupFunction<DomainFunc, DomainFunc>('adblocker_remove_domain');
-    removeD(_blockerPtr!, domain.toNativeUtf8());
+    if (_blockerPtr != null) {
+      final removeD = _nativeLib.lookupFunction<DomainFunc, DomainDart>('adblocker_remove_domain');
+      removeD(_blockerPtr!, domain.toNativeUtf8());
+    }
     _loadData();
   }
 
   Future<void> addWhitelist(String domain) async {
+    if (_db == null) return;
     await _db!.insert('whitelist', {'domain': domain}, conflictAlgorithm: ConflictAlgorithm.ignore);
-    final addW = _nativeLib.lookupFunction<DomainFunc, DomainFunc>('adblocker_add_whitelist');
-    addW(_blockerPtr!, domain.toNativeUtf8());
+    if (_blockerPtr != null) {
+      final addW = _nativeLib.lookupFunction<DomainFunc, DomainDart>('adblocker_add_whitelist');
+      addW(_blockerPtr!, domain.toNativeUtf8());
+    }
     _loadData();
   }
 
   Future<void> removeWhitelist(String domain) async {
+    if (_db == null) return;
     await _db!.delete('whitelist', where: 'domain = ?', whereArgs: [domain]);
-    final removeW = _nativeLib.lookupFunction<DomainFunc, DomainFunc>('adblocker_remove_whitelist');
-    removeW(_blockerPtr!, domain.toNativeUtf8());
+    if (_blockerPtr != null) {
+      final removeW = _nativeLib.lookupFunction<DomainFunc, DomainDart>('adblocker_remove_whitelist');
+      removeW(_blockerPtr!, domain.toNativeUtf8());
+    }
     _loadData();
   }
 
   Future<void> fetchBlocklist(String url) async {
+    if (_db == null) return;
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
@@ -212,14 +249,18 @@ class AdBlockerProvider with ChangeNotifier {
   List<Map<String, dynamic>> get sources => _sources;
   List<String> get whitelist => _whitelist;
   double get blockRate => _totalQueries > 0 ? (_blockedQueries / _totalQueries) * 100 : 0;
-  int get totalDomains => _domains.length; // This is limited in UI, would need a separate count query for real total
+  int get totalDomains => _domains.length;
 
   @override
   void dispose() {
     _refreshTimer?.cancel();
     if (_blockerPtr != null) {
-      final destroy = _nativeLib.lookupFunction<DestroyFunc, DestroyFunc>('adblocker_destroy');
-      destroy(_blockerPtr!);
+      try {
+        final destroy = _nativeLib.lookupFunction<DestroyFunc, DestroyDart>('adblocker_destroy');
+        destroy(_blockerPtr!);
+      } catch (e) {
+        debugPrint('Error destroying blocker: $e');
+      }
     }
     super.dispose();
   }
