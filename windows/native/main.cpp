@@ -1,7 +1,6 @@
 #include "ad_blocker.h"
 #include <windows.h>
 #include <iostream>
-#include <string>
 
 SERVICE_STATUS        g_ServiceStatus = {0};
 SERVICE_STATUS_HANDLE g_StatusHandle = NULL;
@@ -22,10 +21,13 @@ int main(int argc, char* argv[]) {
             return GetLastError();
         }
     } else {
-        // Run as console app for testing
-        AdBlocker blocker("admenii.db");
+        std::cout << "AdMenii DNS Backend Service" << std::endl;
+        std::cout << "Usage: admenii_backend.exe --service" << std::endl;
+        std::cout << "Note: This service is usually managed by the AdMenii UI app." << std::endl;
+        
+        AdBlocker blocker;
         blocker.start(53);
-        std::cout << "AdMenii DNS Server started on port 53. Press Enter to stop..." << std::endl;
+        std::cout << "DNS Server started on port 53. Press Enter to exit..." << std::endl;
         std::cin.get();
         blocker.stop();
     }
@@ -38,25 +40,15 @@ VOID WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
     if (g_StatusHandle == NULL) return;
 
     g_ServiceStatus.dwServiceType = SERVICE_WIN32_OWN_PROCESS;
-    g_ServiceStatus.dwServiceSpecificExitCode = 0;
-
     g_ServiceStatus.dwCurrentState = SERVICE_START_PENDING;
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
 
     g_ServiceStopEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    if (g_ServiceStopEvent == NULL) {
-        g_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
-        SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
-        return;
-    }
-
-    // Start the blocker
-    g_Blocker = new AdBlocker("C:\\ProgramData\\AdMenii\\admenii.db");
-    if (!g_Blocker->start(53)) {
-        g_ServiceStatus.dwCurrentState = SERVICE_STOPPED;
-        SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
-        return;
-    }
+    
+    g_Blocker = new AdBlocker();
+    // In a real standalone service, we'd load domains from a file here.
+    // For now, it waits for the UI to populate it or stays as a skeleton.
+    g_Blocker->start(53);
 
     g_ServiceStatus.dwCurrentState = SERVICE_RUNNING;
     SetServiceStatus(g_StatusHandle, &g_ServiceStatus);
@@ -70,10 +62,8 @@ VOID WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
 VOID WINAPI ServiceCtrlHandler(DWORD CtrlCode) {
     switch (CtrlCode) {
         case SERVICE_CONTROL_STOP:
-            if (g_ServiceStatus.dwCurrentState == SERVICE_RUNNING) {
-                if (g_Blocker) g_Blocker->stop();
-                SetEvent(g_ServiceStopEvent);
-            }
+            if (g_Blocker) g_Blocker->stop();
+            SetEvent(g_ServiceStopEvent);
             break;
         default:
             break;
