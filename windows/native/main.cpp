@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
 }
 
 VOID WINAPI ServiceMain(DWORD argc, LPTSTR* argv) {
-    g_StatusHandle = RegisterServiceCtrlHandler("AdMeniiDNS", ServiceCtrlHandler);
+    g_StatusHandle = RegisterServiceCtrlHandler(TEXT("AdMeniiDNS"), ServiceCtrlHandler);
 
     if (g_StatusHandle == NULL) return;
 
