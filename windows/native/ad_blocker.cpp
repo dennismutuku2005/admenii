@@ -1,3 +1,4 @@
+#define _CRT_SECURE_NO_WARNINGS
 #include "ad_blocker.h"
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -270,7 +271,7 @@ extern "C" {
         std::string logs = blocker->getLogsJson();
         char* cstr = (char*)malloc(logs.length() + 1);
         if (cstr) {
-            strcpy(cstr, logs.c_str());
+            memcpy(cstr, logs.c_str(), logs.length() + 1);
         }
         return cstr;
     }
