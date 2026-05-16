@@ -8,7 +8,7 @@ homepage: https://github.com/dennismutuku2005/admenii
 issue_tracker: https://github.com/dennismutuku2005/admenii/issues
 
 environment:
-  sdk: ^3.10.3
+  sdk: '>=3.0.0 <4.0.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
