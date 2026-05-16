@@ -29,7 +29,7 @@ bool AdBlocker::start(int port) {
         sockaddr_in serverAddr;
         serverAddr.sin_family = AF_INET;
         serverAddr.sin_addr.s_addr = INADDR_ANY;
-        serverAddr.sin_port = htons(dnsPort);
+        serverAddr.sin_port = htons((u_short)dnsPort);
         
         if (bind(udpSocket, (sockaddr*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR) {
             closesocket(udpSocket);
@@ -93,10 +93,10 @@ bool AdBlocker::start(int port) {
                         response[ansPos++] = (char)0x3C;
                         response[ansPos++] = 0;
                         response[ansPos++] = 4;
-                        response[ansPos++] = 0;
-                        response[ansPos++] = 0;
-                        response[ansPos++] = 0;
-                        response[ansPos++] = 0;
+                        response[ansPos++] = (char)0x00;
+                        response[ansPos++] = (char)0x00;
+                        response[ansPos++] = (char)0x00;
+                        response[ansPos++] = (char)0x00;
                         
                         sendto(udpSocket, response, ansPos, 0, (sockaddr*)&clientAddr, clientAddrLen);
                     } else {
