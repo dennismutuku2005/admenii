@@ -41,6 +41,7 @@ class AdBlockerProvider with ChangeNotifier {
   String _upstreamDNS = '8.8.8.8';
   bool _isDoHBlocked = false;
   bool _isServiceInstalled = false;
+  bool _isUpdating = false;
   String _statusMessage = '';
   
   List<Map<String, dynamic>> _domains = [];
@@ -98,6 +99,16 @@ class AdBlockerProvider with ChangeNotifier {
         
         // Initial sources
         await db.insert('sources', {'name': 'StevenBlack Ads', 'url': 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts'});
+
+        // Default critical domains to ensure immediate protection
+        final defaults = [
+          'doubleclick.net', 'google-analytics.com', 'googlesyndication.com', 
+          'googleadservices.com', 'adnxs.com', 'taboola.com', 'outbrain.com',
+          'advertising.com', 'scorecardresearch.com', 'quantserve.com'
+        ];
+        for (var domain in defaults) {
+          await db.insert('domains', {'domain': domain, 'source': 'system:defaults'}, conflictAlgorithm: ConflictAlgorithm.ignore);
+        }
       },
     );
   }
@@ -277,6 +288,26 @@ class AdBlockerProvider with ChangeNotifier {
     _loadData();
   }
 
+  Future<void> updateBlocklists() async {
+    if (_isUpdating) return;
+    _isUpdating = true;
+    _statusMessage = 'Updating blocklists...';
+    notifyListeners();
+    
+    try {
+      final sources = await _db!.query('sources', where: 'is_active = 1');
+      for (var source in sources) {
+        await fetchBlocklist(source['url'] as String);
+      }
+      _statusMessage = 'Blocklists updated successfully.';
+    } catch (e) {
+      _statusMessage = 'Update failed: $e';
+    } finally {
+      _isUpdating = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> fetchBlocklist(String url) async {
     if (_db == null) return;
     try {
@@ -368,6 +399,7 @@ class AdBlockerProvider with ChangeNotifier {
   bool get isRunning => _isRunning;
   bool get isDoHBlocked => _isDoHBlocked;
   bool get isServiceInstalled => _isServiceInstalled;
+  bool get isUpdating => _isUpdating;
   String get statusMessage => _statusMessage;
   int get totalQueries => _totalQueries;
   int get blockedQueries => _blockedQueries;
