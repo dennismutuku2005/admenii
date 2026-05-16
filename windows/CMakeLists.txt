@@ -52,6 +52,30 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
+# AdMenii Native Components
+set(NATIVE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/native")
+set(NATIVE_SOURCES
+    "${NATIVE_DIR}/ad_blocker.cpp"
+    "${NATIVE_DIR}/database.cpp"
+)
+set(NATIVE_HEADERS
+    "${NATIVE_DIR}/ad_blocker.h"
+    "${NATIVE_DIR}/database.h"
+)
+
+# Build the shared library for FFI
+add_library(adblocker SHARED ${NATIVE_SOURCES} ${NATIVE_HEADERS})
+apply_standard_settings(adblocker)
+target_link_libraries(adblocker PRIVATE ws2_32)
+
+# Build the standalone background service
+add_executable(admenii_backend "${NATIVE_DIR}/main.cpp" ${NATIVE_SOURCES} ${NATIVE_HEADERS})
+apply_standard_settings(admenii_backend)
+target_link_libraries(admenii_backend PRIVATE ws2_32)
+
+# Ensure binaries are copied to the output directory
+install(TARGETS adblocker admenii_backend RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
+
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
