@@ -41,6 +41,7 @@ class AdBlockerProvider with ChangeNotifier {
   String _upstreamDNS = '8.8.8.8';
   bool _isDoHBlocked = false;
   bool _isServiceInstalled = false;
+  String _statusMessage = '';
   
   List<Map<String, dynamic>> _domains = [];
   List<Map<String, dynamic>> _logs = [];
@@ -135,13 +136,48 @@ class AdBlockerProvider with ChangeNotifier {
   }
 
   Future<void> startServer() async {
-    if (_blockerPtr == null) return;
-    final start = _nativeLib.lookupFunction<StartFunc, StartDart>('adblocker_start');
-    if (start(_blockerPtr!, 53) != 0) {
-      _isRunning = true;
-      _startRefreshTimer();
+    if (_blockerPtr == null) {
+      _statusMessage = 'Native engine not loaded. Restart the app.';
       notifyListeners();
+      return;
     }
+    
+    _statusMessage = 'Starting DNS engine on port 53...';
+    notifyListeners();
+    
+    final start = _nativeLib.lookupFunction<StartFunc, StartDart>('adblocker_start');
+    final result = start(_blockerPtr!, 53);
+    
+    if (result == 0) {
+      _statusMessage = 'Failed to bind port 53. Run as Administrator!';
+      notifyListeners();
+      return;
+    }
+    
+    // Configure Windows DNS to point to our local server
+    _statusMessage = 'Configuring system DNS to 127.0.0.1...';
+    notifyListeners();
+    
+    try {
+      final dnsResult = await Process.run('powershell', [
+        '-Command',
+        r"Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ServerAddresses ('127.0.0.1') }"
+      ]);
+      
+      if (dnsResult.exitCode != 0) {
+        _statusMessage = 'DNS engine running but could not set system DNS. Run as Admin!';
+        debugPrint('DNS config error: ${dnsResult.stderr}');
+      } else {
+        _statusMessage = 'Protection active. All DNS routed through AdMenii.';
+      }
+    } catch (e) {
+      _statusMessage = 'DNS engine running but system DNS config failed: $e';
+      debugPrint('DNS config error: $e');
+    }
+    
+    _isRunning = true;
+    _startRefreshTimer();
+    notifyListeners();
   }
 
   Future<void> setUpstream(String dns) async {
@@ -181,9 +217,22 @@ class AdBlockerProvider with ChangeNotifier {
 
   Future<void> stopServer() async {
     if (_blockerPtr == null) return;
+    
     final stop = _nativeLib.lookupFunction<StopFunc, StopDart>('adblocker_stop');
     stop(_blockerPtr!);
+    
+    // Restore system DNS back to automatic (DHCP)
+    try {
+      await Process.run('powershell', [
+        '-Command',
+        r"Get-NetAdapter | Where-Object {$_.Status -eq 'Up'} | ForEach-Object { Set-DnsClientServerAddress -InterfaceIndex $_.InterfaceIndex -ResetServerAddresses }"
+      ]);
+    } catch (e) {
+      debugPrint('Error restoring DNS: $e');
+    }
+    
     _isRunning = false;
+    _statusMessage = 'Protection stopped. DNS restored to default.';
     _refreshTimer?.cancel();
     notifyListeners();
   }
@@ -319,6 +368,7 @@ class AdBlockerProvider with ChangeNotifier {
   bool get isRunning => _isRunning;
   bool get isDoHBlocked => _isDoHBlocked;
   bool get isServiceInstalled => _isServiceInstalled;
+  String get statusMessage => _statusMessage;
   int get totalQueries => _totalQueries;
   int get blockedQueries => _blockedQueries;
   List<Map<String, dynamic>> get logs => _logs;
