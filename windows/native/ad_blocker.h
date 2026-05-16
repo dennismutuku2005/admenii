@@ -1,68 +1,76 @@
 #ifndef AD_BLOCKER_H
 #define AD_BLOCKER_H
 
-#include "database.h"
 #include <string>
 #include <thread>
 #include <atomic>
-#include <curl/curl.h>
+#include <unordered_set>
+#include <mutex>
+#include <vector>
 
 class AdBlocker {
 private:
-    DomainDatabase* db;
+    std::unordered_set<std::string> blockedDomains;
+    std::unordered_set<std::string> whitelistedDomains;
+    std::mutex domainsMutex;
+    
     std::atomic<bool> isRunning;
     std::thread serverThread;
-    std::thread updaterThread;
     std::string upstreamDNS;
     int dnsPort;
     
-    void fetchAndUpdateBlocklists();
-    void backgroundUpdater();
-    void parseAndStoreDomains(const std::string& content, const std::string& source);
+    // Stats (managed in C++ for real-time tracking)
+    std::atomic<int> totalQueries;
+    std::atomic<int> blockedQueries;
     
 public:
-    AdBlocker(const std::string& dbPath = "admenii.db");
+    AdBlocker();
     ~AdBlocker();
     
     bool start(int port = 53);
     void stop();
     bool isServerRunning() const { return isRunning; }
     
-    bool addDomain(const std::string& domain, const std::string& category = "ads");
-    bool removeDomain(const std::string& domain);
-    bool isDomainBlocked(const std::string& domain);
+    void addDomain(const std::string& domain);
+    void removeDomain(const std::string& domain);
+    void clearDomains();
     
-    void updateAllBlocklists();
-    void updateBlocklistFromURL(const std::string& url, const std::string& source);
+    void addWhitelist(const std::string& domain);
+    void removeWhitelist(const std::string& domain);
+    void clearWhitelist();
+    
+    bool isBlocked(const std::string& domain);
     
     void setUpstreamDNS(const std::string& dns) { upstreamDNS = dns; }
     std::string getUpstreamDNS() const { return upstreamDNS; }
     
-    DomainDatabase* getDatabase() { return db; }
+    int getTotalQueries() const { return totalQueries; }
+    int getBlockedQueries() const { return blockedQueries; }
+    void resetStats() { totalQueries = 0; blockedQueries = 0; }
 };
 
-// C API
+// C API for Flutter FFI
 extern "C" {
-    __declspec(dllexport) AdBlocker* adblocker_create(const char* dbPath);
+    __declspec(dllexport) AdBlocker* adblocker_create();
     __declspec(dllexport) void adblocker_destroy(AdBlocker* blocker);
     
     __declspec(dllexport) bool adblocker_start(AdBlocker* blocker, int port);
     __declspec(dllexport) void adblocker_stop(AdBlocker* blocker);
     __declspec(dllexport) bool adblocker_is_running(AdBlocker* blocker);
     
-    __declspec(dllexport) bool adblocker_add_domain(AdBlocker* blocker, const char* domain, const char* category);
-    __declspec(dllexport) bool adblocker_remove_domain(AdBlocker* blocker, const char* domain);
-    __declspec(dllexport) bool adblocker_is_blocked(AdBlocker* blocker, const char* domain);
+    __declspec(dllexport) void adblocker_add_domain(AdBlocker* blocker, const char* domain);
+    __declspec(dllexport) void adblocker_remove_domain(AdBlocker* blocker, const char* domain);
+    __declspec(dllexport) void adblocker_clear_domains(AdBlocker* blocker);
     
-    __declspec(dllexport) void adblocker_update_blocklists(AdBlocker* blocker);
-    __declspec(dllexport) void adblocker_update_from_url(AdBlocker* blocker, const char* url, const char* source);
+    __declspec(dllexport) void adblocker_add_whitelist(AdBlocker* blocker, const char* domain);
+    __declspec(dllexport) void adblocker_remove_whitelist(AdBlocker* blocker, const char* domain);
+    __declspec(dllexport) void adblocker_clear_whitelist(AdBlocker* blocker);
     
     __declspec(dllexport) void adblocker_set_upstream(AdBlocker* blocker, const char* dns);
-    __declspec(dllexport) char* adblocker_get_upstream(AdBlocker* blocker);
+    __declspec(dllexport) int adblocker_get_total_queries(AdBlocker* blocker);
+    __declspec(dllexport) int adblocker_get_blocked_queries(AdBlocker* blocker);
     
-    __declspec(dllexport) char* adblocker_get_stats_json(AdBlocker* blocker);
-    __declspec(dllexport) char* adblocker_get_domains_json(AdBlocker* blocker, int limit);
-    __declspec(dllexport) char* adblocker_get_sources_json(AdBlocker* blocker);
+    __declspec(dllexport) void free_string(char* str);
 }
 
 #endif
