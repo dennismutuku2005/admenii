@@ -166,37 +166,44 @@ class HomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.withOpacity(0.05)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  provider.isRunning ? 'Protection Active' : 'System Paused',
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF504A56)),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      provider.isRunning ? 'Protection Active' : 'System Paused',
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF504A56)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      provider.statusMessage.isNotEmpty 
+                          ? provider.statusMessage 
+                          : 'Click Start to begin filtering. Run as Administrator!',
+                      style: TextStyle(fontSize: 11, color: provider.statusMessage.contains('Failed') || provider.statusMessage.contains('could not') ? Colors.red : Colors.grey),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  provider.isRunning ? 'Currently filtering network domains.' : 'Click to start the DNS engine.',
-                  style: const TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(
-            height: 32,
-            child: ElevatedButton(
-              onPressed: () => provider.isRunning ? provider.stopServer() : provider.startServer(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: provider.isRunning ? const Color(0xFF47ACAF) : const Color(0xFFF5F7F8),
-                foregroundColor: provider.isRunning ? Colors.white : const Color(0xFF504A56),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               ),
-              child: Text(provider.isRunning ? 'Stop' : 'Start', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-            ),
+              SizedBox(
+                height: 32,
+                child: ElevatedButton(
+                  onPressed: () => provider.isRunning ? provider.stopServer() : provider.startServer(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: provider.isRunning ? const Color(0xFF47ACAF) : const Color(0xFFF5F7F8),
+                    foregroundColor: provider.isRunning ? Colors.white : const Color(0xFF504A56),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  child: Text(provider.isRunning ? 'Stop' : 'Start', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
           ),
         ],
       ),
