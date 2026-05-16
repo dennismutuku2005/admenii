@@ -9,7 +9,22 @@ class DomainsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      appBar: AppBar(title: const Text('Blacklist', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), toolbarHeight: 60),
+      appBar: AppBar(
+        title: const Text('Blacklist', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        toolbarHeight: 60,
+        actions: [
+          Consumer<AdBlockerProvider>(
+            builder: (context, provider, _) => IconButton(
+              icon: provider.isUpdating 
+                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF47ACAF)))
+                : const Icon(Icons.sync_rounded, size: 20),
+              onPressed: provider.isUpdating ? null : () => provider.updateBlocklists(),
+              tooltip: 'Update Blocklists',
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
+      ),
       body: Consumer<AdBlockerProvider>(
         builder: (context, provider, _) {
           return ListView.builder(
