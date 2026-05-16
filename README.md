@@ -1,7 +1,7 @@
 # AdMenii
 
 <p align="center">
-  <img src="assets/logo.png" width="400" alt="AdMenii Logo">
+  <img src="assets/images/logo.png" width="400" alt="AdMenii Logo">
 </p>
 
 Advanced DNS-based ad blocker for Windows. Powered by C++ and SQLite with a clean Flutter UI.
