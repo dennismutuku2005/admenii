@@ -24,32 +24,29 @@ class AdMeniiApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.light,
-        primaryColor: const Color(0xFFED5550), // Cinnabar
+        primaryColor: const Color(0xFF47ACAF), // Tropical Teal
         colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFED5550),
-          primary: const Color(0xFFED5550),
-          secondary: const Color(0xFF47ACAF), // Tropical Teal
-          surface: const Color(0xFFFCFBFA), // White
+          seedColor: const Color(0xFF47ACAF),
+          primary: const Color(0xFF47ACAF),
+          secondary: const Color(0xFF536B74), // Blue Slate
+          surface: Colors.white,
           onSurface: const Color(0xFF504A56), // Charcoal
         ),
-        scaffoldBackgroundColor: const Color(0xFFFAFAF9), // Bright Snow
+        scaffoldBackgroundColor: const Color(0xFFF5F7F8),
         useMaterial3: true,
         fontFamily: 'Inter',
         appBarTheme: const AppBarTheme(
-          backgroundColor: Color(0xFF504A56),
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Color(0xFF504A56),
           elevation: 0,
         ),
         cardTheme: CardThemeData(
           color: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          shadowColor: const Color(0xFFCCD0D0).withOpacity(0.3),
-        ),
-        textTheme: const TextTheme(
-          displayLarge: TextStyle(color: Color(0xFF504A56), fontWeight: FontWeight.bold),
-          titleLarge: TextStyle(color: Color(0xFF504A56), fontWeight: FontWeight.w600),
-          bodyMedium: TextStyle(color: Color(0xFF717175)), // Dim Grey
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: Colors.grey.withOpacity(0.1)),
+          ),
         ),
       ),
       home: const DashboardScreen(),
