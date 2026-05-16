@@ -4,6 +4,8 @@
 #include <iostream>
 #include <vector>
 #include <cstring>
+#include <chrono>
+#include <sstream>
 
 #pragma comment(lib, "ws2_32.lib")
 
@@ -69,6 +71,17 @@ bool AdBlocker::start(int port) {
                     }
                     
                     bool blocked = isBlocked(domain);
+                    
+                    // Log the query
+                    {
+                        std::lock_guard<std::mutex> lock(logsMutex);
+                        QueryLog log;
+                        log.domain = domain;
+                        log.blocked = blocked;
+                        log.timestamp = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+                        queryLogs.push_back(log);
+                        if (queryLogs.size() > 100) queryLogs.erase(queryLogs.begin());
+                    }
                     
                     if (blocked) {
                         blockedQueries++;
@@ -169,9 +182,6 @@ bool AdBlocker::isBlocked(const std::string& domain) {
     if (whitelistedDomains.count(domain)) return false;
     if (blockedDomains.count(domain)) return true;
     
-    // Check for wildcard/subdomain matching
-    // For simplicity in memory set, we'd need to check suffixes.
-    // Optimization: check each part of the domain.
     size_t pos = 0;
     std::string current = domain;
     while ((pos = current.find('.')) != std::string::npos) {
@@ -181,6 +191,20 @@ bool AdBlocker::isBlocked(const std::string& domain) {
     }
     
     return false;
+}
+
+std::string AdBlocker::getLogsJson() {
+    std::lock_guard<std::mutex> lock(logsMutex);
+    std::stringstream ss;
+    ss << "[";
+    for (size_t i = 0; i < queryLogs.size(); ++i) {
+        ss << "{\"domain\":\"" << queryLogs[i].domain << "\",";
+        ss << "\"blocked\":" << (queryLogs[i].blocked ? "true" : "false") << ",";
+        ss << "\"time\":" << (long long)queryLogs[i].timestamp << "}";
+        if (i < queryLogs.size() - 1) ss << ",";
+    }
+    ss << "]";
+    return ss.str();
 }
 
 // C API implementations
@@ -241,7 +265,17 @@ extern "C" {
         return blocker ? blocker->getBlockedQueries() : 0;
     }
     
-    void free_string(char* str) {
+    const char* adblocker_get_logs(AdBlocker* blocker) {
+        if (!blocker) return nullptr;
+        std::string logs = blocker->getLogsJson();
+        char* cstr = (char*)malloc(logs.length() + 1);
+        if (cstr) {
+            strcpy(cstr, logs.c_str());
+        }
+        return cstr;
+    }
+    
+    void adblocker_free_string(char* str) {
         if (str) free(str);
     }
 }
