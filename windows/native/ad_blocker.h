@@ -14,6 +14,14 @@ private:
     std::unordered_set<std::string> whitelistedDomains;
     std::mutex domainsMutex;
     
+    struct QueryLog {
+        std::string domain;
+        bool blocked;
+        long long timestamp;
+    };
+    std::vector<QueryLog> queryLogs;
+    std::mutex logsMutex;
+    
     std::atomic<bool> isRunning;
     std::thread serverThread;
     std::string upstreamDNS;
@@ -47,6 +55,8 @@ public:
     int getTotalQueries() const { return totalQueries; }
     int getBlockedQueries() const { return blockedQueries; }
     void resetStats() { totalQueries = 0; blockedQueries = 0; }
+    
+    std::string getLogsJson();
 };
 
 // C API for Flutter FFI
@@ -70,7 +80,8 @@ extern "C" {
     __declspec(dllexport) int adblocker_get_total_queries(AdBlocker* blocker);
     __declspec(dllexport) int adblocker_get_blocked_queries(AdBlocker* blocker);
     
-    __declspec(dllexport) void free_string(char* str);
+    __declspec(dllexport) const char* adblocker_get_logs(AdBlocker* blocker);
+    __declspec(dllexport) void adblocker_free_string(char* str);
 }
 
 #endif
