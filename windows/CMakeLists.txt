@@ -65,6 +65,18 @@ target_compile_features(admenii_backend PUBLIC cxx_std_17)
 target_compile_options(admenii_backend PRIVATE /EHsc /wd"4100" /wd"4996")
 target_link_libraries(admenii_backend PRIVATE ws2_32)
 
+# Copy native binaries next to the Flutter executable after build
+add_custom_command(TARGET adblocker POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:adblocker>
+    $<TARGET_FILE_DIR:${BINARY_NAME}>
+)
+add_custom_command(TARGET admenii_backend POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different
+    $<TARGET_FILE:admenii_backend>
+    $<TARGET_FILE_DIR:${BINARY_NAME}>
+)
+
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
@@ -76,8 +88,8 @@ include(flutter/generated_plugins.cmake)
 # run in place. This is done instead of making a separate bundle (as on Linux)
 # so that building and running from within Visual Studio will work.
 set(BUILD_BUNDLE_DIR "$<TARGET_FILE_DIR:${BINARY_NAME}>")
-# Make the "install" step default, as it's required to run.
-set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
+# Disable the automatic "install" step in Visual Studio to avoid MSB3073 errors.
+set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 0)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
 endif()
@@ -87,10 +99,6 @@ set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
-
-# Install native AdMenii components next to the main exe
-install(TARGETS adblocker RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
-install(TARGETS admenii_backend RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}" COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   COMPONENT Runtime)
