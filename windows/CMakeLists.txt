@@ -33,13 +33,9 @@ set(CMAKE_CXX_FLAGS_PROFILE "${CMAKE_CXX_FLAGS_RELEASE}")
 add_definitions(-DUNICODE -D_UNICODE)
 
 # Compilation settings that should be applied to most targets.
-#
-# Be cautious about adding new options here, as plugins use this function by
-# default. In most cases, you should add new options to specific targets instead
-# of modifying this function.
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_17)
-  target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100")
+  target_compile_options(${TARGET} PRIVATE /W4 /WX /wd"4100" /wd"4996")
   target_compile_options(${TARGET} PRIVATE /EHsc)
   target_compile_definitions(${TARGET} PRIVATE "_HAS_EXCEPTIONS=0")
   target_compile_definitions(${TARGET} PRIVATE "$<$<CONFIG:Debug>:_DEBUG>")
@@ -55,14 +51,12 @@ add_subdirectory("runner")
 # AdMenii Native Components (FFI)
 set(NATIVE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/native")
 add_library(adblocker SHARED "${NATIVE_DIR}/ad_blocker.cpp")
-target_compile_features(adblocker PUBLIC cxx_std_17)
-target_compile_options(adblocker PRIVATE /EHsc /wd"4100" /wd"4996")
+apply_standard_settings(adblocker)
 target_link_libraries(adblocker PRIVATE ws2_32)
 
 # AdMenii Standalone Backend
 add_executable(admenii_backend "${NATIVE_DIR}/main.cpp" "${NATIVE_DIR}/ad_blocker.cpp")
-target_compile_features(admenii_backend PUBLIC cxx_std_17)
-target_compile_options(admenii_backend PRIVATE /EHsc /wd"4100" /wd"4996")
+apply_standard_settings(admenii_backend)
 target_link_libraries(admenii_backend PRIVATE ws2_32)
 
 # Copy native binaries next to the Flutter executable after build
@@ -77,54 +71,46 @@ add_custom_command(TARGET admenii_backend POST_BUILD
     $<TARGET_FILE_DIR:${BINARY_NAME}>
 )
 
-
-# Generated plugin build rules, which manage building the plugins and adding
-# them to the application.
+# Generated plugin build rules.
 include(flutter/generated_plugins.cmake)
 
-
 # === Installation ===
-# Support files are copied into place next to the executable, so that it can
-# run in place. This is done instead of making a separate bundle (as on Linux)
-# so that building and running from within Visual Studio will work.
 set(BUILD_BUNDLE_DIR "$<TARGET_FILE_DIR:${BINARY_NAME}>")
-# Disable the automatic "install" step in Visual Studio to avoid MSB3073 errors.
-set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 0)
+set(CMAKE_VS_INCLUDE_INSTALL_TO_DEFAULT_BUILD 1)
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
 endif()
 
-# === Installation (Disabled to fix MSB3073) ===
-# set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
-# set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
+set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
+set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
-# install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
-#   COMPONENT Runtime)
+install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
 
-# install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
-#   COMPONENT Runtime)
+install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
+  COMPONENT Runtime)
 
-# install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-#   COMPONENT Runtime)
+install(FILES "${FLUTTER_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
 
-# if(PLUGIN_BUNDLED_LIBRARIES)
-#   install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
-#     DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-#     COMPONENT Runtime)
-# endif()
+if(PLUGIN_BUNDLED_LIBRARIES)
+  install(FILES "${PLUGIN_BUNDLED_LIBRARIES}"
+    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+    COMPONENT Runtime)
+endif()
 
-# set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
-# install(DIRECTORY "${NATIVE_ASSETS_DIR}"
-#    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
-#    COMPONENT Runtime)
+set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/windows/")
+install(DIRECTORY "${NATIVE_ASSETS_DIR}"
+   DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+   COMPONENT Runtime)
 
-# set(FLUTTER_ASSET_DIR_NAME "flutter_assets")
-# install(CODE "
-#   file(REMOVE_RECURSE \"${INSTALL_BUNDLE_DATA_DIR}/${FLUTTER_ASSET_DIR_NAME}\")
-#   " COMPONENT Runtime)
-# install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
-#   DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" COMPONENT Runtime)
+set(FLUTTER_ASSET_DIR_NAME "flutter_assets")
+install(CODE "
+  file(REMOVE_RECURSE \"${INSTALL_BUNDLE_DATA_DIR}/${FLUTTER_ASSET_DIR_NAME}\")
+  " COMPONENT Runtime)
+install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
+  DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" COMPONENT Runtime)
 
-# install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
-#   CONFIGURATIONS Profile;Release
-#   COMPONENT Runtime)
+install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
+  CONFIGURATIONS Profile;Release
+  COMPONENT Runtime)
