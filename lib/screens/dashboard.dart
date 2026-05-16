@@ -65,7 +65,7 @@ class HomeScreen extends StatelessWidget {
               flexibleSpace: FlexibleSpaceBar(
                 title: Row(
                   children: [
-                    Image.asset('assets/logo.png', height: 24),
+                    Image.asset('assets/images/logo.png', height: 24),
                     const SizedBox(width: 8),
                     const Text('AdMenii Pro', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                   ],
