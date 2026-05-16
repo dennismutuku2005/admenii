@@ -39,6 +39,7 @@ class AdBlockerProvider with ChangeNotifier {
   int _totalQueries = 0;
   int _blockedQueries = 0;
   String _upstreamDNS = '8.8.8.8';
+  bool _isDoHBlocked = false;
   
   List<Map<String, dynamic>> _domains = [];
   List<Map<String, dynamic>> _sources = [];
@@ -240,8 +241,40 @@ class AdBlockerProvider with ChangeNotifier {
     }
   }
 
+  Future<void> toggleDoH(bool value) async {
+    _isDoHBlocked = value;
+    final dohDomains = [
+      'dns.google',
+      'cloudflare-dns.com',
+      'dns.cloudflare.com',
+      'doh.opendns.com',
+      'dns.quad9.net',
+      'dns.adguard.com',
+      'dns-family.adguard.com',
+      'doh.cleanbrowsing.org',
+      'dns.nextdns.io',
+      'doh.mullvad.net',
+      'dns.controld.com',
+      'doh.sb',
+      'doh.libredns.gr',
+      'use-application-dns.net',
+      'doh.tiar.uk',
+      'doh.centurylink.net'
+    ];
+    
+    for (var domain in dohDomains) {
+      if (value) {
+        await addDomain(domain, source: 'system:doh_blocker');
+      } else {
+        await removeDomain(domain);
+      }
+    }
+    notifyListeners();
+  }
+
   // Getters
   bool get isRunning => _isRunning;
+  bool get isDoHBlocked => _isDoHBlocked;
   int get totalQueries => _totalQueries;
   int get blockedQueries => _blockedQueries;
   String get upstreamDNS => _upstreamDNS;
